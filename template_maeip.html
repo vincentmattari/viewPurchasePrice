@@ -10,7 +10,7 @@
   --surface-1:#fcfcfb; --plane:#f9f9f7;
   --ink-1:#0b0b0b; --ink-2:#52514e; --ink-3:#898781;
   --grid:#e1e0d9; --axis:#c3c2b7; --ring:rgba(11,11,11,.10);
-  --g-a:#0ca30c; --g-b:#2a78d6; --g-c:#c98500; --g-d:#d03b3b; --g-f:#898781; --g-n:#4a3aa7;
+  --g-a:#0ca30c; --g-b:#2a78d6; --g-c:#c98500; --g-d:#d03b3b; --g-f:#898781; --g-n:#4a3aa7; --g-g:#eb6834;
   --accent:#2a78d6;
 }
 @media (prefers-color-scheme: dark){:root:where(:not([data-theme="light"])){
@@ -18,7 +18,7 @@
   --surface-1:#1a1a19; --plane:#0d0d0d;
   --ink-1:#fff; --ink-2:#c3c2b7; --ink-3:#898781;
   --grid:#2c2c2a; --axis:#383835; --ring:rgba(255,255,255,.10);
-  --g-a:#0ca30c; --g-b:#3987e5; --g-c:#c98500; --g-d:#d03b3b; --g-f:#898781; --g-n:#9085e9;
+  --g-a:#0ca30c; --g-b:#3987e5; --g-c:#c98500; --g-d:#d03b3b; --g-f:#898781; --g-n:#9085e9; --g-g:#d95926;
   --accent:#3987e5;
 }}
 :root[data-theme="dark"]{
@@ -26,7 +26,7 @@
   --surface-1:#1a1a19; --plane:#0d0d0d;
   --ink-1:#fff; --ink-2:#c3c2b7; --ink-3:#898781;
   --grid:#2c2c2a; --axis:#383835; --ring:rgba(255,255,255,.10);
-  --g-a:#0ca30c; --g-b:#3987e5; --g-c:#c98500; --g-d:#d03b3b; --g-f:#898781; --g-n:#9085e9;
+  --g-a:#0ca30c; --g-b:#3987e5; --g-c:#c98500; --g-d:#d03b3b; --g-f:#898781; --g-n:#9085e9; --g-g:#d95926;
   --accent:#3987e5;
 }
 *{box-sizing:border-box}
@@ -81,6 +81,8 @@ th:hover{color:var(--ink-1)}
 th.l,td.l{text-align:left}
 td{font-variant-numeric:tabular-nums;color:var(--ink-2)}
 td.pn{font-family:ui-monospace,Consolas,monospace;color:var(--ink-1);font-size:12.5px}
+a.plink{color:var(--ink-1);text-decoration:none;border-bottom:1px dotted var(--axis)}
+a.plink:hover{color:var(--accent);border-bottom-color:var(--accent)}
 td.nm{color:var(--ink-1);max-width:190px;overflow:hidden;text-overflow:ellipsis}
 td.hero{color:var(--ink-1);font-weight:650}
 td.why{color:var(--ink-3);font-size:11.5px;max-width:210px;overflow:hidden;text-overflow:ellipsis}
@@ -168,12 +170,19 @@ const I={}; F.forEach((k,i)=>I[k]=i);
 ["품번","현재고수량","매입단가","등급","센터가","할인율","센터가매입가","센터가산출"]
   .forEach(k=>{ if(I[k]===undefined) console.error("데이터에 필드 없음:",k); });
 const S=D.summary, R=D.items;
-const GC={A:"var(--g-a)",B:"var(--g-b)",C:"var(--g-c)",D:"var(--g-d)",N:"var(--g-n)",F:"var(--g-f)"};
+const GC={A:"var(--g-a)",B:"var(--g-b)",C:"var(--g-c)",D:"var(--g-d)",N:"var(--g-n)",G:"var(--g-g)",F:"var(--g-f)"};
 const GN={A:"확정 — 교차검증됨",B:"확정 — 단일 매입",C:"일부 수량 원가 미상",
-          D:"추정 — 판매가 역산",N:"무상 입고 (원가 0)",F:"확인 불가"};
+          D:"추정 — 판매가 역산",N:"무상 입고 (원가 0)",G:"위탁재고 — 자사 매입 아님",F:"확인 불가"};
 const nf=n=>n==null?"—":n.toLocaleString("ko-KR");
 const esc=s=>String(s).replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[m]));
-let page=0, sortK="재고평가액", sortD=-1, gsel=new Set("ABCDNF".split("")), q="", mk="", st="Y";
+/* 재고 입출고 내역 화면 링크 */
+const LINKBASE="https://carang.ipartsnet.co.kr/epmsV3/stock/partStockStoreRelease.asp";
+const pnCell = r => {
+  const sn = r[I.재고번호];
+  const u = LINKBASE + "?keyword=" + encodeURIComponent(r[0]) + (sn!=null ? "&stockNo="+encodeURIComponent(sn) : "");
+  return `<a class="plink" href="${u}" target="_blank" rel="noopener" title="재고 입출고 내역 열기">${esc(r[0])}</a>`;
+};
+let page=0, sortK="재고평가액", sortD=-1, gsel=new Set("ABCDNGF".split("")), q="", mk="", st="Y";
 
 function tiles(){
   const 재고=R.filter(r=>r[I.현재고수량]>0);
@@ -193,9 +202,9 @@ function tiles(){
 }
 function gchart(){
   const 재고=R.filter(r=>r[I.현재고수량]>0);
-  const d={}; "ABCDNF".split("").forEach(g=>d[g]=재고.filter(r=>r[I.등급]===g).length);
+  const d={}; "ABCDNGF".split("").forEach(g=>d[g]=재고.filter(r=>r[I.등급]===g).length);
   const mx=Math.max(...Object.values(d),1);
-  document.getElementById("gchart").innerHTML="ABCDNF".split("").map(g=>
+  document.getElementById("gchart").innerHTML="ABCDNGF".split("").map(g=>
     `<div class="gl"><i class="dot" style="background:${GC[g]}"></i><b>${g}</b>${GN[g]}</div>
      <div class="gtrack"><i style="width:${100*d[g]/mx}%;background:${GC[g]}"></i></div>
      <div class="gval">${nf(d[g])}개<span>${(100*d[g]/재고.length).toFixed(1)}%</span></div>`).join("");
@@ -233,7 +242,7 @@ function draw(){
   document.getElementById("tb").innerHTML=a.slice(page*pp,(page+1)*pp).map(r=>{
     const g=r[I.등급];
     return `<tr>
-<td class="l pn">${esc(r[0])}</td>
+<td class="l pn">${pnCell(r)}</td>
 <td class="l nm">${r[I.부품명]?esc(r[I.부품명]):'<span class="muted">—</span>'}</td>
 <td class="l">${r[I.메이커]?esc(r[I.메이커]):'<span class="muted">—</span>'}</td>
 <td>${nf(r[I.현재고수량])}</td>
@@ -260,7 +269,7 @@ const mkCount=R.reduce((a,r)=>{const m=r[I.메이커]; if(m)a[m]=(a[m]||0)+1; re
 document.getElementById("mk").innerHTML=`<option value="">전체</option>`+
   Object.entries(mkCount).sort((a,b)=>b[1]-a[1])
     .map(([m,c])=>`<option value="${esc(m)}">${esc(m)} (${nf(c)})</option>`).join("");
-document.getElementById("gchips").innerHTML="ABCDNF".split("").map(g=>
+document.getElementById("gchips").innerHTML="ABCDNGF".split("").map(g=>
   `<button class="chip" type="button" aria-pressed="true" data-g="${g}"><i class="dot" style="background:${GC[g]}"></i>${g}</button>`).join("");
 document.querySelectorAll(".chip").forEach(b=>b.onclick=()=>{
   const g=b.dataset.g,on=b.getAttribute("aria-pressed")==="true";

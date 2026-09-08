@@ -78,6 +78,8 @@ th:hover{color:var(--ink-1)}
 th.l,td.l{text-align:left}
 td{font-variant-numeric:tabular-nums;color:var(--ink-2)}
 td.pn{font-family:ui-monospace,Consolas,monospace;color:var(--ink-1);font-size:12.5px}
+a.plink{color:var(--ink-1);text-decoration:none;border-bottom:1px dotted var(--axis)}
+a.plink:hover{color:var(--accent);border-bottom-color:var(--accent)}
 td.nm{color:var(--ink-1);max-width:190px;overflow:hidden;text-overflow:ellipsis}
 td.rs{color:var(--ink-2);max-width:280px;overflow:hidden;text-overflow:ellipsis;font-size:12px}
 td.hero{color:var(--ink-1);font-weight:650}
@@ -171,6 +173,13 @@ const S = D.summary;
 const R = D.items.filter(r=>r[I.현재고수량]>0 && r[I.등급]==="F");
 const nf=n=>n==null?"—":n.toLocaleString("ko-KR");
 const esc=s=>String(s).replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[m]));
+/* 재고 입출고 내역 화면 링크 */
+const LINKBASE="https://carang.ipartsnet.co.kr/epmsV3/stock/partStockStoreRelease.asp";
+const pnCell = r => {
+  const sn = r[I.재고번호];
+  const u = LINKBASE + "?keyword=" + encodeURIComponent(r[0]) + (sn!=null ? "&stockNo="+encodeURIComponent(sn) : "");
+  return `<a class="plink" href="${u}" target="_blank" rel="noopener" title="재고 입출고 내역 열기">${esc(r[0])}</a>`;
+};
 
 /* 기본 체크: 무상 의미가 분명한 그룹만 */
 const FREE_DEFAULT = new Set(["무상지원"]);
@@ -257,7 +266,7 @@ function draw(){
   document.getElementById("tb").innerHTML=a.slice(page*pp,(page+1)*pp).map(r=>{
     const z=isZero(r), ap=applied(r);
     return `<tr class="${z?"freed":""}">
-<td class="l pn">${esc(r[0])}</td>
+<td class="l pn">${pnCell(r)}</td>
 <td class="l nm">${r[I.부품명]?esc(r[I.부품명]):'<span class="muted">—</span>'}</td>
 <td class="l">${esc(r[I.메이커]||"")}</td>
 <td>${nf(r[I.현재고수량])}</td>
